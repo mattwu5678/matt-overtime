@@ -71,7 +71,7 @@ const App = () => {
   const [records, setRecords] = useState(INITIAL_DATA);
   const [isSupervisor, setIsSupervisor] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  // 新增：處理資訊日誌
+  // 處理資訊日誌
   const [submissionLogs, setSubmissionLogs] = useState([]);
   
   // 生成流水號邏輯 (YYYYMMDD-序號)
@@ -85,7 +85,7 @@ const App = () => {
     return `${datePrefix}-${sequence}`;
   }, [records.length]);
 
-  // 表單狀態 - 初始化即帶入當前登入者資訊
+  // 表單狀態 - 時與分初始化為空字串，以顯示 "--"
   const [formData, setFormData] = useState({
     employeeId: CURRENT_LOGGED_USER.id,
     employeeName: CURRENT_LOGGED_USER.name,
@@ -93,11 +93,11 @@ const App = () => {
     category: '一般上班日',
     reimbursementType: '補休',
     startDate: '',
-    startHour: '18',
-    startMinute: '00',
+    startHour: '',
+    startMinute: '',
     endDate: '',
-    endHour: '20',
-    endMinute: '00',
+    endHour: '',
+    endMinute: '',
     reason: '',
   });
 
@@ -130,9 +130,14 @@ const App = () => {
 
   const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 
-  // 計算工時
+  // 計算工時 - 需檢查時分是否已選擇
   const calculatedHours = useMemo(() => {
-    if (!formData.startDate || !formData.endDate) return "0.0";
+    if (
+      !formData.startDate || !formData.endDate || 
+      formData.startHour === '' || formData.startMinute === '' || 
+      formData.endHour === '' || formData.endMinute === ''
+    ) return "0.0";
+
     const start = new Date(`${formData.startDate}T${formData.startHour}:${formData.startMinute}:00`);
     const end = new Date(`${formData.endDate}T${formData.endHour}:${formData.endMinute}:00`);
     const diffMs = end - start;
@@ -140,7 +145,7 @@ const App = () => {
     return (diffMs / (1000 * 60 * 60)).toFixed(1);
   }, [formData.startDate, formData.startHour, formData.startMinute, formData.endDate, formData.endHour, formData.endMinute]);
 
-  // 檢查表單是否完整（工時需大於0且事由不能為空）
+  // 檢查表單是否完整
   const isFormValid = useMemo(() => {
     return parseFloat(calculatedHours) > 0 && formData.reason.trim() !== '';
   }, [calculatedHours, formData.reason]);
@@ -151,9 +156,11 @@ const App = () => {
 
     const foundEmp = EMPLOYEE_DB.find(emp => emp.id === formData.employeeId) || { department: '其他部門' };
     
-    const newId = currentSerialNumber;
+    // 鎖定當前的流水號用於紀錄
+    const submittedId = currentSerialNumber;
+
     const newRecord = {
-      id: newId,
+      id: submittedId,
       employeeId: formData.employeeId,
       applicant: formData.employeeName,
       type: formData.type,
@@ -166,14 +173,15 @@ const App = () => {
       status: '待簽核',
       department: foundEmp.department
     };
+    
     setRecords([newRecord, ...records]);
     
-    // 新增提交日誌紀錄
+    // 產生提交紀錄
     const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-    setSubmissionLogs(prev => [`單據編號 ${newId} 已於 ${timeStr} 成功送出`, ...prev]);
+    const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+    setSubmissionLogs(prev => [`單據編號 ${submittedId} 已於 ${timeStr} 成功送出`, ...prev]);
 
-    // 重置表單
+    // 重置表單為預設狀態
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, 
       employeeName: CURRENT_LOGGED_USER.name, 
@@ -181,16 +189,13 @@ const App = () => {
       category: '一般上班日', 
       reimbursementType: '補休', 
       startDate: '', 
-      startHour: '18', 
-      startMinute: '00', 
+      startHour: '', 
+      startMinute: '', 
       endDate: '', 
-      endHour: '20', 
-      endMinute: '00', 
+      endHour: '', 
+      endMinute: '', 
       reason: '' 
     });
-    
-    // 為了讓使用者看到資訊欄，這裡不再自動跳轉到 query 標籤，改為停留在原地
-    // setActiveTab('query'); 
   };
 
   const handleApprove = (id, newStatus) => {
@@ -296,9 +301,11 @@ const App = () => {
                       </div>
                       <div className="flex gap-2">
                         <select className="w-28 p-3 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500" value={formData.startHour} onChange={(e) => setFormData({...formData, startHour: e.target.value})}>
+                          <option value="">-- 時</option>
                           {hourOptions.map(h => <option key={h} value={h}>{h} 時</option>)}
                         </select>
                         <select className="w-28 p-3 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500" value={formData.startMinute} onChange={(e) => setFormData({...formData, startMinute: e.target.value})}>
+                          <option value="">-- 分</option>
                           <option value="00">00 分</option>
                           <option value="30">30 分</option>
                         </select>
@@ -318,9 +325,11 @@ const App = () => {
                       </div>
                       <div className="flex gap-2 font-sans">
                         <select className="w-28 p-3 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500" value={formData.endHour} onChange={(e) => setFormData({...formData, endHour: e.target.value})}>
+                          <option value="">-- 時</option>
                           {hourOptions.map(h => <option key={h} value={h}>{h} 時</option>)}
                         </select>
                         <select className="w-28 p-3 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500" value={formData.endMinute} onChange={(e) => setFormData({...formData, endMinute: e.target.value})}>
+                          <option value="">-- 分</option>
                           <option value="00">00 分</option>
                           <option value="30">30 分</option>
                         </select>
@@ -345,7 +354,7 @@ const App = () => {
                     </div>
                   </div>
 
-                  {/* 自動結算區塊 - 改為淺色背景 */}
+                  {/* 自動結算區塊 */}
                   <div className="md:w-80 p-5 bg-slate-50/80 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-2">
                       <Timer className="text-blue-600" size={18} />
@@ -378,28 +387,28 @@ const App = () => {
                   </button>
                   {!isFormValid && (
                     <div className="mt-3 space-y-1 text-center">
-                      {parseFloat(calculatedHours) <= 0 && formData.startDate && (
+                      {(parseFloat(calculatedHours) <= 0 && formData.startDate && formData.startHour && formData.endHour) ? (
                         <p className="text-[11px] text-red-500 font-bold font-sans">⚠️ 結束時間必須晚於開始時間。</p>
-                      )}
+                      ) : null}
                       {formData.reason.trim() === '' && (
-                        <p className="text-[11px] text-slate-400 font-bold font-sans">📝 請填寫加班事由後方可提交。</p>
+                        <p className="text-[11px] text-slate-400 font-bold font-sans">📝 請完整填寫日期、時間與事由後方可提交。</p>
                       )}
                     </div>
                   )}
                 </div>
               </form>
 
-              {/* 新增：下方資訊顯示欄 (處理狀態紀錄) */}
+              {/* 下方資訊顯示欄 (處理狀態紀錄) */}
               {submissionLogs.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-2 text-slate-800 font-bold mb-3 text-sm">
                     <History size={16} className="text-blue-600" />
                     <span>處理資訊日誌</span>
                   </div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                     {submissionLogs.map((log, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-[12px] text-blue-700 font-medium">
-                        <Check size={14} className="shrink-0" />
+                      <div key={index} className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100 text-[12px] text-emerald-700 font-bold animate-in zoom-in-95 duration-300">
+                        <CheckCircle size={14} className="shrink-0" />
                         {log}
                       </div>
                     ))}

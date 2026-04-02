@@ -24,7 +24,9 @@ import {
   History,
   Hash,
   ExternalLink,
-  PartyPopper
+  PartyPopper,
+  Loader2,
+  Navigation
 } from 'lucide-react';
 
 // 預設員工資料庫
@@ -170,7 +172,10 @@ const App = () => {
     
     // 捲動至資訊欄
     setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      const element = document.getElementById('submission-tracking');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }, 100);
   };
 
@@ -380,55 +385,92 @@ const App = () => {
                 </div>
               </form>
 
-              {/* 提交成功後的資訊欄 (最後出現) */}
+              {/* 提交成功後的單據追蹤欄 */}
               {lastSubmittedRecord && (
-                <div className="mt-10 animate-in zoom-in-95 fade-in slide-in-from-top-4 duration-500">
-                  <div className="bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-6 relative overflow-hidden">
+                <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700">
+                  <div className="mb-4 flex items-center gap-2 px-2">
+                    <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
+                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">剛提交的單據追蹤</span>
+                    <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
+                  </div>
+                  
+                  <div className="bg-white border-2 border-emerald-500 rounded-3xl p-8 relative overflow-hidden shadow-2xl shadow-emerald-100">
                     {/* 背景裝飾 */}
-                    <PartyPopper className="absolute -right-4 -bottom-4 text-emerald-100 rotate-12" size={120} />
+                    <div className="absolute -right-12 -top-12 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
                     
                     <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3 text-emerald-700">
-                          <div className="bg-emerald-500 text-white p-1.5 rounded-full shadow-sm">
-                            <Check size={18} strokeWidth={3} />
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-200">
+                            <CheckCircle size={24} strokeWidth={2.5} />
                           </div>
-                          <span className="text-lg font-black tracking-tight">申請單已成功送出！</span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-black text-slate-800 tracking-tight">申請單提交成功</span>
+                              <PartyPopper className="text-amber-400" size={20} />
+                            </div>
+                            <p className="text-xs font-bold text-slate-400 mt-0.5">提交時間：{lastSubmittedRecord.submittedAt}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                           <span className={`px-4 py-1.5 rounded-xl text-xs font-black border-2 ${lastSubmittedRecord.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                            {lastSubmittedRecord.reimbursementType}
+                          </span>
+                          <button 
+                            onClick={() => setLastSubmittedRecord(null)}
+                            className="bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-xl transition-all"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* 單據詳細資訊卡 */}
+                      <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-6 space-y-5">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold font-mono tracking-wider">單號: {lastSubmittedRecord.id}</span>
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">{lastSubmittedRecord.type}加班</span>
+                          <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                          <div className="flex items-center gap-1.5 text-slate-800 font-bold text-base">
+                            <Timer size={16} className="text-blue-500" /> 
+                            <span>總計 {lastSubmittedRecord.totalHours} 小時</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono font-bold text-slate-500">
+                          <div className="bg-white px-4 py-3 rounded-xl border border-slate-200/60 shadow-sm flex items-center gap-3">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                            <span>始：{lastSubmittedRecord.startDateTime}</span>
+                          </div>
+                          <div className="bg-white px-4 py-3 rounded-xl border border-slate-200/60 shadow-sm flex items-center gap-3">
+                            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                            <span>迄：{lastSubmittedRecord.endDateTime}</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/40 p-4 rounded-xl text-base text-slate-600 border-l-4 border-emerald-400 italic">
+                          事由：{lastSubmittedRecord.reason}
+                        </div>
+                      </div>
+
+                      {/* 追蹤狀態區 */}
+                      <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 p-4 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-200">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-white/20 p-2.5 rounded-full animate-pulse">
+                            <Loader2 className="text-white animate-spin" size={24} />
+                          </div>
+                          <div className="text-white text-left">
+                            <p className="text-[10px] font-black opacity-60 uppercase tracking-widest">目前單據進度</p>
+                            <p className="text-lg font-black tracking-wider">等待主管核准中...</p>
+                          </div>
                         </div>
                         <button 
-                          onClick={() => setLastSubmittedRecord(null)}
-                          className="text-emerald-300 hover:text-emerald-500 transition-colors p-1"
+                          onClick={() => setActiveTab('query')}
+                          className="w-full md:w-auto bg-white hover:bg-slate-100 text-emerald-700 px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md group text-sm"
                         >
-                          <X size={20} />
+                          追蹤所有單據 <Navigation size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                         </button>
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">單據編號</p>
-                          <p className="text-sm font-mono font-bold text-emerald-900">{lastSubmittedRecord.id}</p>
-                        </div>
-                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">申請類別 / 時數</p>
-                          <p className="text-sm font-bold text-emerald-900">
-                            {lastSubmittedRecord.type}加班 ({lastSubmittedRecord.totalHours}H)
-                          </p>
-                        </div>
-                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">目前進度</p>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                            <p className="text-sm font-bold text-orange-700">{lastSubmittedRecord.status}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <button 
-                        onClick={() => setActiveTab('query')}
-                        className="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200/50 group text-sm"
-                      >
-                        前往紀錄查詢 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
                     </div>
                   </div>
                 </div>

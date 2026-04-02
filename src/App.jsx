@@ -91,6 +91,7 @@ const App = () => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${year}${month}${day}`;
+    // 序號根據當前 records 長度遞增
     const sequence = String(records.length + 1).padStart(3, '0');
     return `${datePrefix}-${sequence}`;
   }, [records.length]);
@@ -218,7 +219,7 @@ const App = () => {
       case 'apply':
         return (
           <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-left">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-left font-sans">
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                   <PlusCircle size={24} className="text-blue-600" /> 加班申請單
@@ -362,7 +363,7 @@ const App = () => {
                   </div>
                   <div className="text-right">
                     <span className="text-4xl font-black font-mono text-blue-400 tracking-tighter">{calculatedHours}</span>
-                    <span className="ml-2 text-base font-bold text-slate-400">小時</span>
+                    <span className="ml-2 text-base font-bold text-slate-400 font-sans">小時</span>
                   </div>
                 </div>
 
@@ -370,13 +371,13 @@ const App = () => {
                   <label className="text-base font-bold text-slate-700">加班事由說明</label>
                   <textarea
                     rows="4" required placeholder="請詳細描述加班原因..."
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all text-base"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all text-base font-sans"
                     value={formData.reason} 
                     onChange={(e) => setFormData({...formData, reason: e.target.value})}
                   ></textarea>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-4 font-sans">
                   <button
                     type="submit" disabled={parseFloat(calculatedHours) <= 0}
                     className={`w-full font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-lg ${parseFloat(calculatedHours) > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
@@ -384,7 +385,7 @@ const App = () => {
                     <CheckCircle size={24} /> 提交加班申請案
                   </button>
                   {parseFloat(calculatedHours) <= 0 && formData.startDate && (
-                    <p className="text-sm text-red-500 mt-3 text-center font-bold tracking-wide">⚠️ 結束時間必須晚於開始時間。</p>
+                    <p className="text-sm text-red-500 mt-3 text-center font-bold tracking-wide font-sans">⚠️ 結束時間必須晚於開始時間。</p>
                   )}
                 </div>
               </form>
@@ -415,7 +416,7 @@ const App = () => {
                 </ul>
               </div>
 
-              {/* 提交成功後的單據追蹤清單 - 直接從 records 篩選出目前登入者的單據 */}
+              {/* 提交成功後的單據追蹤清單 - 直接從 records 篩選出目前登入者的所有單據 */}
               {mySubmissions.length > 0 && (
                 <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700 text-left font-sans">
                   <div className="mb-6 flex items-center justify-between px-2">
@@ -426,7 +427,7 @@ const App = () => {
                   </div>
                   
                   <div className="space-y-4">
-                    {mySubmissions.map((record, index) => (
+                    {[...mySubmissions].reverse().map((record, index) => (
                       <div key={record.id} className={`bg-white border-2 ${index === 0 ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-slate-200 shadow-sm'} rounded-3xl p-6 relative overflow-hidden transition-all hover:border-emerald-300`}>
                         <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                           <div className="flex items-center gap-4">
@@ -455,8 +456,8 @@ const App = () => {
                             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-inner">
                               <p className="text-[9px] font-black text-slate-400 uppercase mb-1">狀態</p>
                               <div className="flex items-center justify-center gap-1.5">
-                                <div className={`w-1.5 h-1.5 rounded-full ${record.status === '待簽核' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`}></div>
-                                <p className={`text-xs font-black uppercase ${record.status === '待簽核' ? 'text-orange-600' : 'text-green-600'}`}>{record.status}</p>
+                                <div className={`w-1.5 h-1.5 rounded-full ${record.status === '待簽核' ? 'bg-orange-400 animate-pulse' : record.status === '已駁回' ? 'bg-red-400' : 'bg-green-400'}`}></div>
+                                <p className={`text-xs font-black uppercase ${record.status === '待簽核' ? 'text-orange-600' : record.status === '已駁回' ? 'text-red-600' : 'text-green-600'}`}>{record.status}</p>
                               </div>
                             </div>
                           </div>
@@ -465,7 +466,7 @@ const App = () => {
                             {record.status === '待簽核' && (
                               <button 
                                 onClick={() => handleWithdraw(record.id)}
-                                className="flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-black transition-all border border-red-100 active:scale-95"
+                                className="flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-black transition-all border border-red-100 active:scale-95 shadow-sm"
                                 title="撤回此申請單"
                               >
                                 <RotateCcw size={14} /> 抽單
@@ -497,29 +498,35 @@ const App = () => {
               records.filter(r => r.status === '待簽核').map(record => (
                 <div key={record.id} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-300">
                   <div className="flex flex-col space-y-4">
-                    {/* 頂部資訊列：名字、時間 inline 顯示 */}
-                    <div className="flex flex-wrap items-center gap-4">
+                    {/* 頂部資訊列：將名字與時間放在同一行，節省空間 */}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                       <div className="flex items-center gap-3">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold font-mono tracking-wider shadow-inner">單號: {record.id}</span>
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-bold font-mono tracking-wider shadow-inner">單號: {record.id}</span>
                         <h3 className="font-bold text-xl text-slate-800 tracking-tight">{record.applicant}</h3>
                       </div>
                       
-                      {/* 時間區塊：放到名字後面 */}
-                      <div className="flex items-center gap-2 text-sm font-mono text-slate-500 font-bold bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100 shadow-inner">
-                        <span className="text-blue-600">始：{record.startDateTime}</span>
+                      {/* 時間區塊：緊隨名字之後 */}
+                      <div className="flex items-center gap-3 text-sm font-mono font-bold bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-inner">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-blue-600">始：</span>
+                          <span className="text-slate-700">{record.startDateTime}</span>
+                        </div>
                         <ArrowRight size={14} className="text-slate-300 mx-1" />
-                        <span className="text-orange-600">終：{record.endDateTime}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-orange-600">終：</span>
+                          <span className="text-slate-700">{record.endDateTime}</span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${record.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{record.reimbursementType}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-lg text-[11px] font-bold border ${record.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{record.reimbursementType}</span>
                         <div className="flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold font-mono">
                           <Timer size={14} className="text-blue-400" /> {record.totalHours} 小時
                         </div>
                       </div>
                     </div>
                     
-                    <div className="bg-slate-50 p-4 rounded-xl text-base text-slate-600 border-l-4 border-slate-300 italic shadow-inner">
+                    <div className="bg-slate-50 p-4 rounded-xl text-base text-slate-600 border-l-4 border-slate-300 italic shadow-inner font-sans">
                       事由：{record.reason}
                     </div>
                   </div>
@@ -533,7 +540,7 @@ const App = () => {
                       <textarea
                         rows="2"
                         placeholder="請輸入核准或駁回之具體意見..."
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all font-sans"
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all font-sans"
                         value={approvalComments[record.id] || ''}
                         onChange={(e) => setApprovalComments({...approvalComments, [record.id]: e.target.value})}
                       ></textarea>
@@ -564,11 +571,11 @@ const App = () => {
       case 'query':
         return (
           <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in duration-500 text-left font-sans">
-            <div className="p-8 border-b border-slate-100 flex flex-wrap items-center justify-between gap-6 bg-slate-50/50">
+            <div className="p-8 border-b border-slate-100 flex flex-wrap items-center justify-between gap-6 bg-slate-50/50 font-sans">
               <h2 className="font-bold text-xl text-slate-800 tracking-tight">加班紀錄查詢與彙整</h2>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input type="text" placeholder="搜尋姓名、工號..." className="pl-12 pr-5 py-3 bg-white border border-slate-200 rounded-xl text-base focus:ring-2 focus:ring-blue-500 w-80 shadow-sm transition-all" />
+                <input type="text" placeholder="搜尋姓名、工號..." className="pl-12 pr-5 py-3 bg-white border border-slate-200 rounded-xl text-base focus:ring-2 focus:ring-blue-500 w-80 shadow-sm transition-all font-sans" />
               </div>
             </div>
             <div className="overflow-x-auto font-sans">
@@ -601,7 +608,7 @@ const App = () => {
                           <span className={`text-[11px] px-2 py-0.5 rounded-md font-black border uppercase ${record.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{record.reimbursementType}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-center">
+                      <td className="px-8 py-6 text-center font-sans">
                         <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-black shadow-sm uppercase ${record.status === '已核准' ? 'bg-green-50 text-green-600' : record.status === '待簽核' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>{record.status}</span>
                       </td>
                       <td className="px-8 py-6 text-right">
@@ -657,7 +664,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans antialiased text-slate-900">
       <aside className={`bg-slate-900 text-white flex flex-col transition-all duration-300 z-50 ${isSidebarOpen ? 'w-72' : 'w-24'} shadow-2xl font-sans`}>
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50 font-sans">
           <div className="flex items-center gap-4 overflow-hidden">
             <div className="bg-blue-600 p-2.5 rounded-xl shrink-0 shadow-lg shadow-blue-900/20">
               <FileText size={24} className="text-white" />
@@ -675,7 +682,7 @@ const App = () => {
 
         <div className="flex-1 px-4 py-8 space-y-8 font-sans">
            {isSidebarOpen && (
-             <div className="p-5 bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-inner">
+             <div className="p-5 bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-inner font-sans">
                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4">系統狀態</h4>
                <div className="space-y-4">
                  <div className="flex items-center justify-between text-xs font-bold">
@@ -692,10 +699,10 @@ const App = () => {
         </div>
 
         <div className="p-4 border-t border-slate-800/50 font-sans">
-          <div className={`flex items-center p-4 bg-slate-800/30 rounded-2xl ${!isSidebarOpen && 'justify-center'} border border-slate-800/50`}>
+          <div className={`flex items-center p-4 bg-slate-800/30 rounded-2xl ${!isSidebarOpen && 'justify-center'} border border-slate-800/50 font-sans`}>
             <User size={22} className="text-blue-400 shrink-0" />
             {isSidebarOpen && (
-              <div className="ml-4 overflow-hidden text-left animate-in fade-in duration-300">
+              <div className="ml-4 overflow-hidden text-left animate-in fade-in duration-300 font-sans">
                 <p className="text-[10px] font-black text-slate-500 font-mono tracking-widest uppercase opacity-60">EMP ID #{CURRENT_LOGGED_USER.id}</p>
               </div>
             )}
@@ -705,7 +712,7 @@ const App = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden font-sans">
         <header className="h-20 border-b border-slate-200 bg-white/80 backdrop-blur-md z-40 px-10 flex items-center justify-between shadow-sm font-sans">
-          <div className="flex items-center gap-2 h-full font-sans font-sans">
+          <div className="flex items-center gap-2 h-full font-sans">
             <TabItem active={activeTab === 'apply'} label="加班申請" onClick={() => setActiveTab('apply')} />
             {isSupervisor && (
               <TabItem active={activeTab === 'approve'} label="主管簽核" onClick={() => setActiveTab('approve')} badge={records.filter(r => r.status === '待簽核').length} />
@@ -716,13 +723,13 @@ const App = () => {
           
           <div className="flex items-center gap-6 font-sans">
             <div className="text-xs text-slate-400 font-mono font-black tracking-widest bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 shadow-inner">{new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}</div>
-            <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all border border-slate-100 shadow-sm active:scale-90">
+            <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all border border-slate-100 shadow-sm active:scale-90 font-sans">
               <LogOut size={20} />
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/50 font-sans font-sans">
+        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/50 font-sans">
           {renderContent()}
         </div>
       </main>
@@ -739,7 +746,7 @@ const TabItem = ({ active, label, onClick, badge }) => (
   >
     {label}
     {badge > 0 && (
-      <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-full min-w-[20px] text-center font-black animate-pulse shadow-sm shadow-red-200">
+      <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-full min-w-[20px] text-center font-black animate-pulse shadow-sm shadow-red-200 font-sans">
         {badge}
       </span>
     )}

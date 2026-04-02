@@ -75,6 +75,7 @@ const App = () => {
   const [submissionLogs, setSubmissionLogs] = useState([]);
   
   // 生成流水號邏輯 (YYYYMMDD-序號)
+  // 嚴格依據「系統當前日期」生成，不受表單內的「加班時間」影響
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -83,9 +84,9 @@ const App = () => {
     const datePrefix = `${year}${month}${day}`;
     const sequence = String(records.length + 1).padStart(3, '0');
     return `${datePrefix}-${sequence}`;
-  }, [records.length]);
+  }, [records.length]); // 僅在紀錄數量變動時重新計算
 
-  // 表單狀態 - 時與分初始化為空字串，以顯示 "--"
+  // 表單狀態
   const [formData, setFormData] = useState({
     employeeId: CURRENT_LOGGED_USER.id,
     employeeName: CURRENT_LOGGED_USER.name,
@@ -93,7 +94,7 @@ const App = () => {
     category: '一般上班日',
     reimbursementType: '補休',
     startDate: '',
-    startHour: '',
+    startHour: '', 
     startMinute: '',
     endDate: '',
     endHour: '',
@@ -130,7 +131,7 @@ const App = () => {
 
   const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 
-  // 計算工時 - 需檢查時分是否已選擇
+  // 計算工時 - 檢查時分是否已選擇
   const calculatedHours = useMemo(() => {
     if (
       !formData.startDate || !formData.endDate || 
@@ -156,7 +157,7 @@ const App = () => {
 
     const foundEmp = EMPLOYEE_DB.find(emp => emp.id === formData.employeeId) || { department: '其他部門' };
     
-    // 鎖定當前的流水號用於紀錄
+    // 鎖定目前的流水號
     const submittedId = currentSerialNumber;
 
     const newRecord = {
@@ -176,12 +177,12 @@ const App = () => {
     
     setRecords([newRecord, ...records]);
     
-    // 產生提交紀錄
+    // 產生日誌
     const now = new Date();
     const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
     setSubmissionLogs(prev => [`單據編號 ${submittedId} 已於 ${timeStr} 成功送出`, ...prev]);
 
-    // 重置表單為預設狀態
+    // 重置表單
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, 
       employeeName: CURRENT_LOGGED_USER.name, 

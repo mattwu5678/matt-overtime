@@ -22,7 +22,9 @@ import {
   Info,
   Coins,
   History,
-  Hash
+  Hash,
+  ExternalLink,
+  PartyPopper
 } from 'lucide-react';
 
 // 預設員工資料庫
@@ -71,6 +73,7 @@ const App = () => {
   const [records, setRecords] = useState(INITIAL_DATA);
   const [isSupervisor, setIsSupervisor] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [lastSubmittedRecord, setLastSubmittedRecord] = useState(null);
   
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
@@ -104,6 +107,7 @@ const App = () => {
       employeeId: id,
       employeeName: found ? found.name : prev.employeeName
     }));
+    if (lastSubmittedRecord) setLastSubmittedRecord(null);
   };
 
   const handleEmployeeNameChange = (name) => {
@@ -113,6 +117,7 @@ const App = () => {
       employeeName: name,
       employeeId: found ? found.id : prev.employeeId
     }));
+    if (lastSubmittedRecord) setLastSubmittedRecord(null);
   };
 
   useEffect(() => {
@@ -148,16 +153,25 @@ const App = () => {
       totalHours: calculatedHours,
       reason: formData.reason,
       status: '待簽核',
-      department: foundEmp.department
+      department: foundEmp.department,
+      submittedAt: new Date().toLocaleString()
     };
+    
     setRecords([newRecord, ...records]);
+    setLastSubmittedRecord(newRecord);
+    
+    // 重置表單
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, employeeName: CURRENT_LOGGED_USER.name, 
       type: '事前', category: '一般上班日', reimbursementType: '補休', 
       startDate: '', startHour: '18', startMinute: '00', 
       endDate: '', endHour: '20', endMinute: '00', reason: '' 
     });
-    setActiveTab('query');
+    
+    // 捲動至資訊欄
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
   };
 
   const handleApprove = (id, newStatus) => {
@@ -165,6 +179,7 @@ const App = () => {
   };
 
   const handleDateClick = (e) => {
+    if (lastSubmittedRecord) setLastSubmittedRecord(null);
     try {
       if (e.currentTarget && typeof e.currentTarget.showPicker === 'function') {
         e.currentTarget.showPicker();
@@ -176,7 +191,7 @@ const App = () => {
     switch (activeTab) {
       case 'apply':
         return (
-          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-left">
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -188,6 +203,7 @@ const App = () => {
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-8">
+                {/* 申報性質 */}
                 <div className="space-y-4">
                   <label className="text-base font-bold text-slate-700 flex items-center gap-2">
                     <FileText size={18} className="text-blue-600"/> 申報性質
@@ -196,7 +212,11 @@ const App = () => {
                     <div className="flex gap-4 shrink-0">
                       {['事前', '事後'].map(t => (
                         <button
-                          key={t} type="button" onClick={() => setFormData({...formData, type: t})}
+                          key={t} type="button" 
+                          onClick={() => {
+                            setFormData({...formData, type: t});
+                            if (lastSubmittedRecord) setLastSubmittedRecord(null);
+                          }}
                           className={`px-8 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-base font-bold ${
                             formData.type === t 
                             ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' 
@@ -214,6 +234,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 申請人資訊 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500">員工編號 (可修改)</label>
@@ -235,13 +256,18 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 類別設定 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-base font-bold text-slate-700">補償方式</label>
                     <div className="flex gap-4">
                       {['補休', '計薪'].map(r => (
                         <button
-                          key={r} type="button" onClick={() => setFormData({...formData, reimbursementType: r})}
+                          key={r} type="button" 
+                          onClick={() => {
+                            setFormData({...formData, reimbursementType: r});
+                            if (lastSubmittedRecord) setLastSubmittedRecord(null);
+                          }}
                           className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-base font-bold ${formData.reimbursementType === r ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}
                         >
                           {r}
@@ -253,7 +279,11 @@ const App = () => {
                     <label className="text-base font-bold text-slate-700 flex items-center gap-2">加班類別</label>
                     <select
                       required className="w-full p-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 text-base"
-                      value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      value={formData.category} 
+                      onChange={(e) => {
+                        setFormData({...formData, category: e.target.value});
+                        if (lastSubmittedRecord) setLastSubmittedRecord(null);
+                      }}
                     >
                       <option value="一般上班日">一般上班日</option>
                       <option value="國定假日">國定假日</option>
@@ -263,6 +293,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 時間設定 */}
                 <div className="space-y-6">
                   <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-4 uppercase tracking-widest">起始日期與時間</div>
@@ -309,6 +340,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 自動結算 */}
                 <div className="flex items-center justify-between p-6 bg-slate-900 rounded-2xl text-white shadow-xl">
                   <div className="flex items-center gap-4">
                     <Timer className="text-blue-400" size={28} />
@@ -327,7 +359,11 @@ const App = () => {
                   <textarea
                     rows="4" required placeholder="請詳細描述加班原因..."
                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all text-base"
-                    value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                    value={formData.reason} 
+                    onChange={(e) => {
+                      setFormData({...formData, reason: e.target.value});
+                      if (lastSubmittedRecord) setLastSubmittedRecord(null);
+                    }}
                   ></textarea>
                 </div>
 
@@ -344,6 +380,60 @@ const App = () => {
                 </div>
               </form>
 
+              {/* 提交成功後的資訊欄 (最後出現) */}
+              {lastSubmittedRecord && (
+                <div className="mt-10 animate-in zoom-in-95 fade-in slide-in-from-top-4 duration-500">
+                  <div className="bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-6 relative overflow-hidden">
+                    {/* 背景裝飾 */}
+                    <PartyPopper className="absolute -right-4 -bottom-4 text-emerald-100 rotate-12" size={120} />
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3 text-emerald-700">
+                          <div className="bg-emerald-500 text-white p-1.5 rounded-full shadow-sm">
+                            <Check size={18} strokeWidth={3} />
+                          </div>
+                          <span className="text-lg font-black tracking-tight">申請單已成功送出！</span>
+                        </div>
+                        <button 
+                          onClick={() => setLastSubmittedRecord(null)}
+                          className="text-emerald-300 hover:text-emerald-500 transition-colors p-1"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">單據編號</p>
+                          <p className="text-sm font-mono font-bold text-emerald-900">{lastSubmittedRecord.id}</p>
+                        </div>
+                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">申請類別 / 時數</p>
+                          <p className="text-sm font-bold text-emerald-900">
+                            {lastSubmittedRecord.type}加班 ({lastSubmittedRecord.totalHours}H)
+                          </p>
+                        </div>
+                        <div className="bg-white/60 p-3 rounded-2xl border border-emerald-100">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">目前進度</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                            <p className="text-sm font-bold text-orange-700">{lastSubmittedRecord.status}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setActiveTab('query')}
+                        className="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200/50 group text-sm"
+                      >
+                        前往紀錄查詢 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left">
                 <div className="flex items-center gap-2 text-amber-800 font-bold mb-6 border-b border-amber-200 pb-3 tracking-wider text-base">
                   <AlertCircle size={22} />
@@ -357,10 +447,6 @@ const App = () => {
                   <li className="flex gap-3">
                     <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">2</span>
                     <span>請於加班後<span className="text-amber-900 font-bold underline mx-1">七個工作日內</span>提交申請，逾期不受理。</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">3</span>
-                    <span>每月加班總時數上限為 <span className="text-red-600 font-bold">46 小時</span>。</span>
                   </li>
                 </ul>
               </div>

@@ -86,7 +86,7 @@ const App = () => {
   
   const [approvalComments, setApprovalComments] = useState({});
   
-  // 生成流水號邏輯 (按系統當天日期計數)
+  // 生成流水號邏輯 (按系統當前日期計數)
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -167,7 +167,7 @@ const App = () => {
       reason: formData.reason,
       status: '待簽核',
       department: foundEmp.department,
-      submittedAt: new Date().toLocaleString('zh-TW', { hour12: false })
+      submittedAt: new Date().toLocaleString('zh-TW', { hour12: false }) // 格式：2024/04/02 13:30:05
     };
     
     setRecords([newRecord, ...records]);
@@ -234,6 +234,7 @@ const App = () => {
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-8 font-sans">
+                {/* 申報性質 */}
                 <div className="space-y-4">
                   <label className="text-lg font-bold text-slate-700 flex items-center gap-2">
                     <FileText size={20} className="text-blue-600"/> 申報性質
@@ -261,6 +262,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 員工資訊 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
                   <div className="space-y-2">
                     <label className="text-base font-bold text-slate-500">員工編號 (可修改)</label>
@@ -282,6 +284,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 補償與類別 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-lg font-bold text-slate-700">補償方式</label>
@@ -312,6 +315,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 時間設定 */}
                 <div className="space-y-6">
                   <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 font-sans">
                     <div className="flex items-center gap-2 text-blue-700 font-bold text-base mb-4 uppercase tracking-widest">起始日期與時間</div>
@@ -343,7 +347,7 @@ const App = () => {
                           type="date" 
                           required 
                           onClick={handleDateClick}
-                          min={formData.startDate} // 設定最小值為起始日期
+                          min={formData.startDate}
                           className="w-full p-3.5 bg-white border border-slate-200 rounded-xl text-lg cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all outline-none font-sans"
                           value={formData.endDate} 
                           onChange={(e) => setFormData({...formData, endDate: e.target.value})}
@@ -362,6 +366,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* 自動結算 */}
                 <div className="flex items-center justify-between p-6 bg-slate-900 rounded-2xl text-white shadow-xl">
                   <div className="flex items-center gap-4">
                     <Timer className="text-blue-400" size={32} />
@@ -444,7 +449,7 @@ const App = () => {
                             </div>
                             <div>
                               <span className="text-2xl font-black text-slate-800 tracking-tight font-mono">{record.id}</span>
-                              <p className="text-xs font-bold text-slate-400 mt-0.5 tracking-wide uppercase">單據建立於：{record.submittedAt || '歷史紀錄'}</p>
+                              <p className="text-xs font-bold text-slate-400 mt-0.5 tracking-wide uppercase">單據建立時間：{record.submittedAt || '歷史紀錄'}</p>
                             </div>
                           </div>
                           
@@ -472,10 +477,10 @@ const App = () => {
                             {record.status === '待簽核' && (
                               <button 
                                 onClick={() => handleWithdraw(record.id)}
-                                className="flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2.5 rounded-xl text-sm font-black transition-all border border-red-100 active:scale-95 shadow-sm font-sans"
+                                className="flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-6 py-3 rounded-xl text-base font-black transition-all border border-red-100 active:scale-95 shadow-sm font-sans"
                                 title="撤回此申請單"
                               >
-                                <RotateCcw size={16} /> 抽單
+                                <RotateCcw size={18} /> 抽單
                               </button>
                             )}
                           </div>

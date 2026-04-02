@@ -390,7 +390,7 @@ const App = () => {
                 <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700">
                   <div className="mb-4 flex items-center gap-2 px-2">
                     <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
-                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">剛提交的單據追蹤</span>
+                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">剛提交的單據資訊</span>
                     <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
                   </div>
                   
@@ -398,68 +398,44 @@ const App = () => {
                     <div className="absolute -right-12 -top-12 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
                     
                     <div className="relative z-10">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center justify-between gap-4 mb-6">
                         <div className="flex items-center gap-4">
                           <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-200">
                             <CheckCircle size={24} strokeWidth={2.5} />
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl font-black text-slate-800 tracking-tight">申請單提交成功</span>
-                              <PartyPopper className="text-amber-400" size={20} />
-                            </div>
-                            <p className="text-xs font-bold text-slate-400 mt-0.5">提交時間：{lastSubmittedRecord.submittedAt}</p>
+                            <span className="text-xl font-black text-slate-800 tracking-tight">申請單提交成功</span>
+                            <p className="text-xs font-bold text-slate-400 mt-0.5 tracking-wide">系統已同步更新至紀錄查詢</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                           <span className={`px-4 py-1.5 rounded-xl text-xs font-black border-2 ${lastSubmittedRecord.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                            {lastSubmittedRecord.reimbursementType}
-                          </span>
-                          <button 
-                            onClick={() => setLastSubmittedRecord(null)}
-                            className="bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-xl transition-all"
-                          >
-                            <X size={20} />
-                          </button>
-                        </div>
+                        <button 
+                          onClick={() => setLastSubmittedRecord(null)}
+                          className="bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-xl transition-all"
+                        >
+                          <X size={20} />
+                        </button>
                       </div>
                       
-                      {/* 單據詳細資訊卡 */}
-                      <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-6 space-y-5">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold font-mono tracking-wider">單號: {lastSubmittedRecord.id}</span>
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">{lastSubmittedRecord.type}加班</span>
-                          <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
-                          <div className="flex items-center gap-1.5 text-slate-800 font-bold text-base">
-                            <Timer size={16} className="text-blue-500" /> 
-                            <span>總計 {lastSubmittedRecord.totalHours} 小時</span>
+                      {/* 單據核心資訊網格 */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/60 p-4 rounded-2xl border border-emerald-100 text-center shadow-sm">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1 tracking-tighter">單號</p>
+                          <p className="text-sm font-mono font-bold text-emerald-900">{lastSubmittedRecord.id}</p>
+                        </div>
+                        <div className="bg-white/60 p-4 rounded-2xl border border-emerald-100 text-center shadow-sm">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1 tracking-tighter">大名</p>
+                          <p className="text-sm font-bold text-emerald-900">{lastSubmittedRecord.applicant}</p>
+                        </div>
+                        <div className="bg-white/60 p-4 rounded-2xl border border-emerald-100 text-center shadow-sm">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1 tracking-tighter">異動時間</p>
+                          <p className="text-sm font-bold text-emerald-900">{lastSubmittedRecord.submittedAt}</p>
+                        </div>
+                        <div className="bg-white/60 p-4 rounded-2xl border border-emerald-100 text-center shadow-sm">
+                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-1 tracking-tighter">狀態</p>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                            <p className="text-sm font-bold text-orange-600">{lastSubmittedRecord.status}</p>
                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono font-bold text-slate-500">
-                          <div className="bg-white px-4 py-3 rounded-xl border border-slate-200/60 shadow-sm flex items-center gap-3">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                            <span>始：{lastSubmittedRecord.startDateTime}</span>
-                          </div>
-                          <div className="bg-white px-4 py-3 rounded-xl border border-slate-200/60 shadow-sm flex items-center gap-3">
-                            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                            <span>迄：{lastSubmittedRecord.endDateTime}</span>
-                          </div>
-                        </div>
-
-                        <div className="bg-white/40 p-4 rounded-xl text-base text-slate-600 border-l-4 border-emerald-400 italic">
-                          事由：{lastSubmittedRecord.reason}
-                        </div>
-                      </div>
-
-                      {/* 追蹤狀態區 (移除跳轉按鈕) */}
-                      <div className="mt-8 flex items-center gap-6 p-5 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-200">
-                        <div className="bg-white/20 p-3 rounded-full animate-pulse">
-                          <Loader2 className="text-white animate-spin" size={28} />
-                        </div>
-                        <div className="text-white text-left">
-                          <p className="text-xs font-black opacity-60 uppercase tracking-widest">目前單據進度</p>
-                          <p className="text-xl font-black tracking-wider">等待主管核准中...</p>
                         </div>
                       </div>
                     </div>
@@ -710,7 +686,7 @@ const TabItem = ({ active, label, onClick, badge }) => (
       </span>
     )}
     {active && (
-      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.3)]"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8_rgba(37,99,235,0.3)]"></div>
     )}
   </button>
 );

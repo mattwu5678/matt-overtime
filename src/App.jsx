@@ -139,8 +139,15 @@ const App = () => {
     return (diffMs / (1000 * 60 * 60)).toFixed(1);
   }, [formData.startDate, formData.startHour, formData.startMinute, formData.endDate, formData.endHour, formData.endMinute]);
 
+  // 檢查表單是否完整（工時需大於0且事由不能為空）
+  const isFormValid = useMemo(() => {
+    return parseFloat(calculatedHours) > 0 && formData.reason.trim() !== '';
+  }, [calculatedHours, formData.reason]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!isFormValid) return;
+
     const foundEmp = EMPLOYEE_DB.find(emp => emp.id === formData.employeeId) || { department: '其他部門' };
     
     const newRecord = {
@@ -232,19 +239,19 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 申請人資訊 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">員工編號 (可修改)</label>
+                {/* 申請人資訊與類別 */}
+                <div className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                  <div className="md:w-32 space-y-2">
+                    <label className="text-xs font-bold text-slate-500">員工編號</label>
                     <input
-                      type="text" required maxLength={4} placeholder="例如：1024"
+                      type="text" required maxLength={4} placeholder="1024"
                       className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                       value={formData.employeeId} 
                       onChange={(e) => handleEmployeeIdChange(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">員工姓名 (可修改)</label>
+                  <div className="flex-1 space-y-2">
+                    <label className="text-xs font-bold text-slate-500">員工姓名</label>
                     <input
                       type="text" required placeholder="請輸入姓名"
                       className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
@@ -252,24 +259,8 @@ const App = () => {
                       onChange={(e) => handleEmployeeNameChange(e.target.value)}
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">補償方式</label>
-                    <div className="flex gap-3">
-                      {['補休', '計薪'].map(r => (
-                        <button
-                          key={r} type="button" onClick={() => setFormData({...formData, reimbursementType: r})}
-                          className={`flex-1 py-2.5 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-sm font-bold ${formData.reimbursementType === r ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-left">
-                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2">加班類別</label>
+                  <div className="md:w-48 space-y-2">
+                    <label className="text-xs font-bold text-slate-500">加班類別</label>
                     <select
                       required className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-700"
                       value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -329,22 +320,39 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 自動結算 */}
-                <div className="flex items-center justify-between p-4 bg-slate-900 rounded-xl text-white shadow-xl">
-                  <div className="flex items-center gap-3">
-                    <Timer className="text-blue-400" size={24} />
-                    <div className="text-left font-sans">
-                      <p className="text-xs text-slate-400 font-bold uppercase">自動結算總時數</p>
+                {/* 補償方式與自動結算並排 (淺色風格) */}
+                <div className="flex flex-col md:flex-row items-stretch gap-4">
+                  <div className="flex-1 p-5 bg-slate-50/80 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                    <label className="text-xs font-bold text-slate-500 mb-3">補償方式</label>
+                    <div className="flex gap-3">
+                      {['補休', '計薪'].map(r => (
+                        <button
+                          key={r} type="button" onClick={() => setFormData({...formData, reimbursementType: r})}
+                          className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-sm font-bold ${formData.reimbursementType === r ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}
+                        >
+                          {r}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="text-right font-sans">
-                    <span className="text-3xl font-black font-mono text-blue-400 tracking-tighter">{calculatedHours}</span>
-                    <span className="ml-1 text-sm font-bold text-slate-400">小時</span>
+
+                  {/* 自動結算區塊 - 改為淺色背景 */}
+                  <div className="md:w-80 p-5 bg-slate-50/80 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Timer className="text-blue-600" size={18} />
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider whitespace-nowrap">自動結算總時數</p>
+                    </div>
+                    <div className="flex items-baseline gap-1 ml-4 shrink-0">
+                      <span className="text-3xl font-black font-mono text-blue-600 tracking-tighter leading-none">{calculatedHours}</span>
+                      <span className="text-xs font-bold text-slate-400">小時</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-left">
-                  <label className="text-sm font-bold text-slate-700">加班事由說明</label>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
+                    加班事由說明 <span className="text-red-500 font-black">*</span>
+                  </label>
                   <textarea
                     rows="3" required placeholder="請詳細描述加班原因、欲達成之目標或工作內容..."
                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all font-sans"
@@ -354,13 +362,20 @@ const App = () => {
 
                 <div className="pt-4 font-sans">
                   <button
-                    type="submit" disabled={parseFloat(calculatedHours) <= 0}
-                    className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${parseFloat(calculatedHours) > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                    type="submit" disabled={!isFormValid}
+                    className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isFormValid ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                   >
                     <CheckCircle size={20} /> 提交加班申請案
                   </button>
-                  {parseFloat(calculatedHours) <= 0 && formData.startDate && (
-                    <p className="text-xs text-red-500 mt-2 text-center font-bold font-sans">⚠️ 結束時間必須晚於開始時間。</p>
+                  {!isFormValid && (
+                    <div className="mt-3 space-y-1 text-center">
+                      {parseFloat(calculatedHours) <= 0 && formData.startDate && (
+                        <p className="text-[11px] text-red-500 font-bold font-sans">⚠️ 結束時間必須晚於開始時間。</p>
+                      )}
+                      {formData.reason.trim() === '' && (
+                        <p className="text-[11px] text-slate-400 font-bold font-sans">📝 請填寫加班事由後方可提交。</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </form>

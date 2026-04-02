@@ -27,7 +27,10 @@ import {
   PartyPopper,
   Loader2,
   Navigation,
-  ClipboardList
+  ClipboardList,
+  MessageSquare,
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 
 // 預設員工資料庫
@@ -67,7 +70,8 @@ const INITIAL_DATA = [
     totalHours: '4.5',
     reason: '修復緊急跨日 Bug', 
     status: '已核准', 
-    department: '工程部' 
+    department: '工程部',
+    comment: '同意，辛苦了。'
   },
 ];
 
@@ -76,8 +80,9 @@ const App = () => {
   const [records, setRecords] = useState(INITIAL_DATA);
   const [isSupervisor, setIsSupervisor] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  // 改為陣列，用於存儲本次操作中所有提交成功的紀錄
   const [recentSubmissions, setRecentSubmissions] = useState([]);
+  
+  const [approvalComments, setApprovalComments] = useState({});
   
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
@@ -85,6 +90,7 @@ const App = () => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${year}${month}${day}`;
+    // 序號根據當前 records 長度遞增
     const sequence = String(records.length + 1).padStart(3, '0');
     return `${datePrefix}-${sequence}`;
   }, [records.length]);
@@ -160,7 +166,6 @@ const App = () => {
     };
     
     setRecords([newRecord, ...records]);
-    // 將新單據加入近期提交列表的最前面
     setRecentSubmissions([newRecord, ...recentSubmissions]);
     
     setFormData({ 
@@ -179,9 +184,31 @@ const App = () => {
   };
 
   const handleApprove = (id, newStatus) => {
-    setRecords(records.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    // 同步更新近期提交列表中的狀態
-    setRecentSubmissions(recentSubmissions.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    const comment = approvalComments[id] || '';
+    setRecords(records.map(r => r.id === id ? { 
+      ...r, 
+      status: newStatus, 
+      comment: comment,
+      approvedAt: new Date().toLocaleString()
+    } : r));
+    
+    setRecentSubmissions(recentSubmissions.map(r => r.id === id ? { 
+      ...r, 
+      status: newStatus,
+      comment: comment
+    } : r));
+
+    const newComments = { ...approvalComments };
+    delete newComments[id];
+    setApprovalComments(newComments);
+  };
+
+  // 抽單功能邏輯
+  const handleWithdraw = (id) => {
+    // 從紀錄中移除
+    setRecords(records.filter(r => r.id !== id));
+    // 從近期提交中移除
+    setRecentSubmissions(recentSubmissions.filter(r => r.id !== id));
   };
 
   const handleDateClick = (e) => {
@@ -202,13 +229,12 @@ const App = () => {
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                   <PlusCircle size={24} className="text-blue-600" /> 加班申請單
                 </h2>
-                <div className="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 uppercase tracking-wider shadow-inner">
+                <div className="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 uppercase tracking-wider shadow-inner font-mono">
                   <Hash size={14} /> 申請單號：{currentSerialNumber}
                 </div>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* 申報性質 */}
+              <form onSubmit={handleSubmit} className="space-y-8 font-sans">
                 <div className="space-y-4">
                   <label className="text-base font-bold text-slate-700 flex items-center gap-2">
                     <FileText size={18} className="text-blue-600"/> 申報性質
@@ -236,7 +262,6 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 申請人資訊 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500">員工編號 (可修改)</label>
@@ -258,7 +283,6 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 類別設定 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-base font-bold text-slate-700">補償方式</label>
@@ -289,7 +313,6 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 時間設定 */}
                 <div className="space-y-6">
                   <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 font-sans">
                     <div className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-4 uppercase tracking-widest">起始日期與時間</div>
@@ -336,17 +359,16 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* 自動結算 */}
                 <div className="flex items-center justify-between p-6 bg-slate-900 rounded-2xl text-white shadow-xl">
                   <div className="flex items-center gap-4">
                     <Timer className="text-blue-400" size={28} />
-                    <div className="text-left font-sans">
+                    <div className="text-left">
                       <p className="text-sm text-slate-400 font-bold uppercase tracking-wider">自動結算總時數</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="text-4xl font-black font-mono text-blue-400 tracking-tighter">{calculatedHours}</span>
-                    <span className="ml-2 text-base font-bold text-slate-400 font-sans">小時</span>
+                    <span className="ml-2 text-base font-bold text-slate-400">小時</span>
                   </div>
                 </div>
 
@@ -360,7 +382,7 @@ const App = () => {
                   ></textarea>
                 </div>
 
-                <div className="pt-4 font-sans">
+                <div className="pt-4">
                   <button
                     type="submit" disabled={parseFloat(calculatedHours) <= 0}
                     className={`w-full font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-lg ${parseFloat(calculatedHours) > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
@@ -368,13 +390,13 @@ const App = () => {
                     <CheckCircle size={24} /> 提交加班申請案
                   </button>
                   {parseFloat(calculatedHours) <= 0 && formData.startDate && (
-                    <p className="text-sm text-red-500 mt-3 text-center font-bold tracking-wide font-sans">⚠️ 結束時間必須晚於開始時間。</p>
+                    <p className="text-sm text-red-500 mt-3 text-center font-bold tracking-wide">⚠️ 結束時間必須晚於開始時間。</p>
                   )}
                 </div>
               </form>
 
               {/* 加班申請注意事項 */}
-              <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans">
+              <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans shadow-sm">
                 <div className="flex items-center gap-2 text-amber-800 font-bold mb-6 border-b border-amber-200 pb-3 tracking-wider text-base">
                   <AlertCircle size={22} />
                   <span>加班申請注意事項</span>
@@ -399,65 +421,74 @@ const App = () => {
                 </ul>
               </div>
 
-              {/* 提交成功後的單據追蹤欄 (支援多筆帶出) */}
+              {/* 提交成功後的單據追蹤清單 */}
               {recentSubmissions.length > 0 && (
-                <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700 font-sans text-left">
+                <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700 text-left font-sans">
                   <div className="mb-6 flex items-center justify-between px-2">
                     <div className="flex items-center gap-2">
                       <ClipboardList size={20} className="text-emerald-600" />
-                      <span className="text-sm font-black text-emerald-600 uppercase tracking-widest">剛提交的單據資訊清單</span>
+                      <span className="text-sm font-black text-emerald-600 uppercase tracking-widest">近期提交的單據資訊</span>
                     </div>
                     <button 
                       onClick={() => setRecentSubmissions([])}
-                      className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                      className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors bg-slate-100 px-3 py-1 rounded-full"
                     >
-                      清空列表
+                      清空清單
                     </button>
                   </div>
                   
                   <div className="space-y-4">
                     {recentSubmissions.map((record, index) => (
-                      <div key={record.id} className={`bg-white border-2 ${index === 0 ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-slate-200'} rounded-3xl p-6 relative overflow-hidden shadow-xl transition-all`}>
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div key={record.id} className={`bg-white border-2 ${index === 0 ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-slate-200 shadow-sm'} rounded-3xl p-6 relative overflow-hidden transition-all hover:border-emerald-300`}>
+                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                           <div className="flex items-center gap-4">
                             <div className={`${index === 0 ? 'bg-emerald-500' : 'bg-slate-400'} text-white p-2 rounded-xl shadow-lg`}>
                               <CheckCircle size={20} strokeWidth={2.5} />
                             </div>
                             <div>
-                              <span className="text-lg font-black text-slate-800 tracking-tight">單據 {record.id} 提交成功</span>
-                              <p className="text-[10px] font-bold text-slate-400 mt-0.5 tracking-wide uppercase">提交時間：{record.submittedAt}</p>
+                              <span className="text-lg font-black text-slate-800 tracking-tight">申請單提交成功</span>
+                              <p className="text-[10px] font-bold text-slate-400 mt-0.5 tracking-wide uppercase font-mono">ID: {record.id} | {record.submittedAt}</p>
                             </div>
                           </div>
                           
-                          {/* 四個核心欄位 */}
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-1 lg:max-w-3xl">
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 xl:max-w-4xl">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-inner">
                               <p className="text-[9px] font-black text-slate-400 uppercase mb-1">單號</p>
                               <p className="text-xs font-mono font-black text-slate-700">{record.id}</p>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-inner">
                               <p className="text-[9px] font-black text-slate-400 uppercase mb-1">大名</p>
                               <p className="text-xs font-black text-slate-700">{record.applicant}</p>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-inner">
                               <p className="text-[9px] font-black text-slate-400 uppercase mb-1">異動時間</p>
                               <p className="text-[10px] font-bold text-slate-700 leading-tight">{record.submittedAt.split(' ')[1]}</p>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-inner">
                               <p className="text-[9px] font-black text-slate-400 uppercase mb-1">狀態</p>
                               <div className="flex items-center justify-center gap-1.5">
-                                <div className="w-1 h-1 bg-orange-400 rounded-full animate-pulse"></div>
+                                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
                                 <p className="text-xs font-black text-orange-600 uppercase">{record.status}</p>
                               </div>
                             </div>
                           </div>
 
-                          <button 
-                            onClick={() => setRecentSubmissions(recentSubmissions.filter(r => r.id !== record.id))}
-                            className="text-slate-300 hover:text-red-500 p-1 hidden md:block"
-                          >
-                            <X size={18} />
-                          </button>
+                          {/* 抽單按鈕 */}
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleWithdraw(record.id)}
+                              className="flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-black transition-all border border-red-100 active:scale-95"
+                              title="撤回此申請單"
+                            >
+                              <RotateCcw size={14} /> 抽單
+                            </button>
+                            <button 
+                              onClick={() => setRecentSubmissions(recentSubmissions.filter(r => r.id !== record.id))}
+                              className="text-slate-300 hover:text-slate-600 p-2"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -481,26 +512,56 @@ const App = () => {
               <div className="text-center py-24 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-lg font-medium">目前沒有任何待簽核的加班申請案</div>
             ) : (
               records.filter(r => r.status === '待簽核').map(record => (
-                <div key={record.id} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 animate-in fade-in zoom-in-95 duration-300">
-                  <div className="flex-1 space-y-4 w-full">
-                    <div className="flex items-center flex-wrap gap-3">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold font-mono tracking-wider shadow-inner">單號: {record.id}</span>
-                      <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${record.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{record.reimbursementType}</span>
-                      <div className="flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold font-mono">
-                        <Timer size={14} className="text-blue-400" /> {record.totalHours} 小時
+                <div key={record.id} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+                    <div className="flex-1 space-y-4 w-full">
+                      <div className="flex items-center flex-wrap gap-3">
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold font-mono tracking-wider shadow-inner">單號: {record.id}</span>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${record.reimbursementType === '補休' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{record.reimbursementType}</span>
+                        <div className="flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold font-mono">
+                          <Timer size={14} className="text-blue-400" /> {record.totalHours} 小時
+                        </div>
+                        <h3 className="font-bold text-xl text-slate-800 ml-2 tracking-tight">{record.applicant}</h3>
                       </div>
-                      <h3 className="font-bold text-xl text-slate-800 ml-2 tracking-tight">{record.applicant}</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm font-mono text-slate-500 font-bold">
+                        <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 shadow-inner tracking-tighter">開始：{record.startDateTime}</div>
+                        <ArrowRight size={18} className="text-slate-300 hidden sm:block" />
+                        <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 shadow-inner tracking-tighter">結束：{record.endDateTime}</div>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-xl text-base text-slate-600 border-l-4 border-slate-300 italic shadow-inner">事由：{record.reason}</div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm font-mono text-slate-500 font-bold">
-                      <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 shadow-inner tracking-tighter">開始：{record.startDateTime}</div>
-                      <ArrowRight size={18} className="text-slate-300 hidden sm:block" />
-                      <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 shadow-inner tracking-tighter">結束：{record.endDateTime}</div>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-xl text-base text-slate-600 border-l-4 border-slate-300 italic shadow-inner">事由：{record.reason}</div>
                   </div>
-                  <div className="flex gap-3 w-full xl:w-auto shrink-0 font-sans">
-                    <button onClick={() => handleApprove(record.id, '已核准')} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-2xl font-bold transition-all shadow-md active:scale-95 text-base"><Check size={20} /> 核准</button>
-                    <button onClick={() => handleApprove(record.id, '已駁回')} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-500 border border-red-100 px-8 py-3.5 rounded-2xl font-bold transition-all active:scale-95 text-base"><X size={20} /> 駁回</button>
+
+                  {/* 簽核意見與按鈕區 */}
+                  <div className="border-t border-slate-100 pt-6 space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                        <MessageSquare size={16} className="text-blue-500" /> 簽核意見 {(!approvalComments[record.id] || approvalComments[record.id].trim() === '') && <span className="text-[10px] text-red-500 font-bold">(駁回時必填)</span>}
+                      </label>
+                      <textarea
+                        rows="2"
+                        placeholder="請輸入核准或駁回之具體意見..."
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all font-sans"
+                        value={approvalComments[record.id] || ''}
+                        onChange={(e) => setApprovalComments({...approvalComments, [record.id]: e.target.value})}
+                      ></textarea>
+                    </div>
+
+                    <div className="flex gap-3 w-full xl:w-auto font-sans">
+                      <button 
+                        onClick={() => handleApprove(record.id, '已核准')} 
+                        className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-2xl font-bold transition-all shadow-md active:scale-95 text-base"
+                      >
+                        <Check size={20} /> 核准
+                      </button>
+                      <button 
+                        disabled={!approvalComments[record.id] || approvalComments[record.id].trim() === ''}
+                        onClick={() => handleApprove(record.id, '已駁回')} 
+                        className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-bold transition-all text-base ${(!approvalComments[record.id] || approvalComments[record.id].trim() === '') ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60' : 'bg-white hover:bg-red-50 text-red-500 border border-red-100 shadow-md active:scale-95'}`}
+                      >
+                        <X size={20} /> 駁回
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -518,7 +579,7 @@ const App = () => {
                 <input type="text" placeholder="搜尋姓名、工號..." className="pl-12 pr-5 py-3 bg-white border border-slate-200 rounded-xl text-base focus:ring-2 focus:ring-blue-500 w-80 shadow-sm transition-all" />
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto font-sans">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="text-slate-400 text-xs uppercase font-black border-b border-slate-100 bg-slate-50/30">
@@ -565,22 +626,22 @@ const App = () => {
       case 'settings':
         return (
           <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500 text-left font-sans">
-            <div className="lg:col-span-1 text-center">
-              <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-200">
+            <div className="lg:col-span-1 text-center font-sans">
+              <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 shadow-md">
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-6 border-2 border-blue-200 font-black text-xl shadow-inner uppercase tracking-tighter">Admin</div>
                 <h3 className="font-black text-xl text-slate-800 tracking-tight">王大錘 經理</h3>
                 <p className="text-slate-400 text-xs mt-1 mb-8 font-mono font-bold uppercase tracking-[0.2em] opacity-60">工號: 1024</p>
                 <button 
                   onClick={() => setIsSupervisor(!isSupervisor)}
-                  className={`w-full py-3.5 rounded-2xl font-black transition-all border-2 text-base shadow-sm ${isSupervisor ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                  className={`w-full py-3.5 rounded-2xl font-black transition-all border-2 text-base shadow-sm ${isSupervisor ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                 >
                   {isSupervisor ? '權限級別：管理員' : '權限級別：一般員工'}
                 </button>
               </div>
             </div>
             <div className="lg:col-span-2 space-y-6 font-sans">
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <h3 className="font-black text-base text-slate-800 mb-6 flex items-center gap-2 uppercase tracking-wide"><Settings size={20} className="text-blue-600" /> 系統參數設定</h3>
+              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 shadow-sm">
+                <h3 className="font-black text-base text-slate-800 mb-6 flex items-center gap-2 uppercase tracking-wide font-sans"><Settings size={20} className="text-blue-600" /> 系統參數設定</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                     <div className="text-sm font-bold text-slate-700">自動生成單據流水號</div>
@@ -602,15 +663,15 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans antialiased text-slate-900 font-sans">
-      <aside className={`bg-slate-900 text-white flex flex-col transition-all duration-300 z-50 ${isSidebarOpen ? 'w-72' : 'w-24'} shadow-2xl`}>
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans antialiased text-slate-900">
+      <aside className={`bg-slate-900 text-white flex flex-col transition-all duration-300 z-50 ${isSidebarOpen ? 'w-72' : 'w-24'} shadow-2xl font-sans`}>
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50">
           <div className="flex items-center gap-4 overflow-hidden">
             <div className="bg-blue-600 p-2.5 rounded-xl shrink-0 shadow-lg shadow-blue-900/20">
               <FileText size={24} className="text-white" />
             </div>
             {isSidebarOpen && (
-              <div className="whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
+              <div className="whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300 font-sans">
                 <h1 className="text-base font-black tracking-[0.1em] text-slate-100 uppercase">內部管理系統</h1>
               </div>
             )}
@@ -652,7 +713,7 @@ const App = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden font-sans">
         <header className="h-20 border-b border-slate-200 bg-white/80 backdrop-blur-md z-40 px-10 flex items-center justify-between shadow-sm font-sans">
-          <div className="flex items-center gap-2 h-full font-sans">
+          <div className="flex items-center gap-2 h-full font-sans font-sans">
             <TabItem active={activeTab === 'apply'} label="加班申請" onClick={() => setActiveTab('apply')} />
             {isSupervisor && (
               <TabItem active={activeTab === 'approve'} label="主管簽核" onClick={() => setActiveTab('approve')} badge={records.filter(r => r.status === '待簽核').length} />
@@ -669,7 +730,7 @@ const App = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/50 font-sans">
+        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/50 font-sans font-sans">
           {renderContent()}
         </div>
       </main>
@@ -680,7 +741,7 @@ const App = () => {
 const TabItem = ({ active, label, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`h-full px-8 flex items-center gap-3 transition-all relative font-black text-sm tracking-widest uppercase ${
+    className={`h-full px-8 flex items-center gap-3 transition-all relative font-black text-sm tracking-widest uppercase font-sans ${
       active ? 'text-blue-600' : 'text-slate-400 hover:text-slate-800'
     }`}
   >

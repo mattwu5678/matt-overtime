@@ -20,7 +20,6 @@ import {
   Briefcase,
   Timer,
   Info,
-  Coins,
   History,
   Hash
 } from 'lucide-react';
@@ -72,6 +71,8 @@ const App = () => {
   const [records, setRecords] = useState(INITIAL_DATA);
   const [isSupervisor, setIsSupervisor] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // 新增：處理資訊日誌
+  const [submissionLogs, setSubmissionLogs] = useState([]);
   
   // 生成流水號邏輯 (YYYYMMDD-序號)
   const currentSerialNumber = useMemo(() => {
@@ -150,8 +151,9 @@ const App = () => {
 
     const foundEmp = EMPLOYEE_DB.find(emp => emp.id === formData.employeeId) || { department: '其他部門' };
     
+    const newId = currentSerialNumber;
     const newRecord = {
-      id: currentSerialNumber,
+      id: newId,
       employeeId: formData.employeeId,
       applicant: formData.employeeName,
       type: formData.type,
@@ -166,6 +168,11 @@ const App = () => {
     };
     setRecords([newRecord, ...records]);
     
+    // 新增提交日誌紀錄
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    setSubmissionLogs(prev => [`單據編號 ${newId} 已於 ${timeStr} 成功送出`, ...prev]);
+
     // 重置表單
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, 
@@ -181,7 +188,9 @@ const App = () => {
       endMinute: '00', 
       reason: '' 
     });
-    setActiveTab('query');
+    
+    // 為了讓使用者看到資訊欄，這裡不再自動跳轉到 query 標籤，改為停留在原地
+    // setActiveTab('query'); 
   };
 
   const handleApprove = (id, newStatus) => {
@@ -200,7 +209,7 @@ const App = () => {
     switch (activeTab) {
       case 'apply':
         return (
-          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-left font-sans">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -379,6 +388,24 @@ const App = () => {
                   )}
                 </div>
               </form>
+
+              {/* 新增：下方資訊顯示欄 (處理狀態紀錄) */}
+              {submissionLogs.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex items-center gap-2 text-slate-800 font-bold mb-3 text-sm">
+                    <History size={16} className="text-blue-600" />
+                    <span>處理資訊日誌</span>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                    {submissionLogs.map((log, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-[12px] text-blue-700 font-medium">
+                        <Check size={14} className="shrink-0" />
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 注意事項 */}
               <div className="mt-12 p-6 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans">

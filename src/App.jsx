@@ -63,6 +63,10 @@
             ]);
             const [isSupervisor, setIsSupervisor] = useState(true);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            
+            // 抽單確認視窗狀態
+            const [showConfirmModal, setShowConfirmModal] = useState(false);
+            const [targetWithdrawId, setTargetWithdrawId] = useState(null);
 
             // 定義 24 小時制選項
             const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')), []);
@@ -135,6 +139,18 @@
                 setRecords(records.map(r => r.id === id ? { ...r, status: newStatus } : r));
             };
 
+            // 執行抽單動作
+            const executeWithdraw = () => {
+                setRecords(records.filter(r => r.id !== targetWithdrawId));
+                setShowConfirmModal(false);
+                setTargetWithdrawId(null);
+            };
+
+            const openWithdrawConfirm = (id) => {
+                setTargetWithdrawId(id);
+                setShowConfirmModal(true);
+            };
+
             const renderContent = () => {
                 if (activeTab === 'apply') return (
                     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans">
@@ -189,9 +205,9 @@
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-sans">
                                         <div className="flex items-center gap-2 text-blue-700 font-bold text-xs mb-4 uppercase tracking-widest">起始日期與時間</div>
-                                        <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col md:flex-row gap-4 font-sans">
                                             <div className="w-full md:w-44 relative">
                                                 <input type="date" required onClick={handleDateClick} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-sans cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} />
                                             </div>
@@ -203,7 +219,7 @@
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-sans">
                                         <div className="flex items-center gap-2 text-orange-700 font-bold text-xs mb-4 uppercase tracking-widest">結束日期與時間</div>
-                                        <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col md:flex-row gap-4 font-sans">
                                             <div className="w-full md:w-44 relative">
                                                 <input type="date" required onClick={handleDateClick} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-sans cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} />
                                             </div>
@@ -242,7 +258,7 @@
                             <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold font-sans">目前有 {records.filter(r => r.status === '待簽核').length} 筆待處理</span>
                         </div>
                         {records.filter(r => r.status === '待簽核').length === 0 ? (
-                            <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 font-medium">目前沒有待簽核的加班案</div>
+                            <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 font-medium font-sans">目前沒有待簽核的加班案</div>
                         ) : (
                             records.filter(r => r.status === '待簽核').map(record => (
                                 <div key={record.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
@@ -253,16 +269,16 @@
                                             <div className="flex items-center gap-1 bg-slate-800 text-white px-2 py-1 rounded text-xs font-bold font-mono"><Icon name="timer" className="text-blue-400" size={12} /> {record.totalHours} 小時</div>
                                             <h3 className="font-bold text-lg text-slate-800 ml-1">{record.applicant}</h3>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs font-mono text-slate-500 font-bold">
-                                            <div className="bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>開始：{record.startDateTime}</div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs font-mono text-slate-500 font-bold font-sans">
+                                            <div className="bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2 font-sans"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full font-sans"></div>開始：{record.startDateTime}</div>
                                             <Icon name="arrow-right" size={14} className="text-slate-300 hidden sm:block" />
-                                            <div className="bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2"><div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>結束：{record.endDateTime}</div>
+                                            <div className="bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-2 font-sans"><div className="w-1.5 h-1.5 bg-orange-500 rounded-full font-sans"></div>結束：{record.endDateTime}</div>
                                         </div>
-                                        <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 border-l-4 border-slate-300 italic font-sans font-medium">事由：{record.reason}</div>
+                                        <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 border-l-4 border-slate-300 italic font-sans font-medium font-sans">事由：{record.reason}</div>
                                     </div>
-                                    <div className="flex gap-2 w-full xl:w-auto shrink-0">
+                                    <div className="flex gap-2 w-full xl:w-auto shrink-0 font-sans">
                                         <button onClick={() => handleApprove(record.id, '已核准')} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm active:scale-95 transition-all"><Icon name="check" size={18} /> 核准</button>
-                                        <button onClick={() => handleApprove(record.id, '已駁回')} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-500 border border-red-100 px-6 py-2.5 rounded-xl font-bold shadow-sm active:scale-95 transition-all"><Icon name="x" size={18} /> 駁回</button>
+                                        <button onClick={() => handleApprove(record.id, '已駁回')} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-500 border border-red-100 px-6 py-2.5 rounded-xl font-bold shadow-sm active:scale-95 transition-all font-sans"><Icon name="x" size={18} /> 駁回</button>
                                     </div>
                                 </div>
                             ))
@@ -273,39 +289,51 @@
                 if (activeTab === 'query') return (
                     <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden text-left font-sans animate-in fade-in duration-500">
                         <div className="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
-                            <h2 className="font-bold text-lg text-slate-800">加班紀錄查詢與彙整</h2>
-                            <div className="relative"><Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="text" placeholder="搜尋單號、姓名或工號..." className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 w-64" /></div>
+                            <h2 className="font-bold text-lg text-slate-800 font-sans">加班紀錄查詢與彙整</h2>
+                            <div className="relative font-sans font-sans"><Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-sans" size={18} /><input type="text" placeholder="搜尋單號、姓名或工號..." className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 w-64 font-sans font-sans" /></div>
                         </div>
-                        <div className="overflow-x-auto font-sans"><table className="w-full"><thead><tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-50 bg-slate-50/30 font-sans"><th className="px-6 py-4 text-left">單號</th><th className="px-6 py-4 text-left">姓名 / 工號</th><th className="px-6 py-4 text-left">加班時段</th><th className="px-6 py-4 text-left">時數</th><th className="px-6 py-4 text-center">狀態</th><th className="px-6 py-4 text-right font-sans">動作</th></tr></thead>
-                        <tbody className="divide-y divide-slate-50">{records.map(record => (
-                            <tr key={record.id} className="hover:bg-slate-50/80 transition-colors font-sans"><td className="px-6 py-4 font-mono text-[10px] font-bold text-slate-500">{record.id}</td><td className="px-6 py-4 font-sans font-bold"><div className="text-slate-800 text-sm font-bold">{record.applicant}</div><div className="text-[10px] text-slate-400 font-mono tracking-tighter">ID #{record.employeeId}</div></td><td className="px-6 py-4 font-mono text-[10px] leading-relaxed"><div className="text-slate-700">始：{record.startDateTime}</div><div className="text-slate-400">迄：{record.endDateTime}</div></td><td className="px-6 py-4 font-sans font-black text-blue-600">{record.totalHours}H</td><td className="px-6 py-4 text-center font-sans"><span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold font-sans ${record.status === '已核准' ? 'bg-green-50 text-green-600' : record.status === '待簽核' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>{record.status}</span></td><td className="px-6 py-4 text-right"><Icon name="chevron-right" className="text-slate-300 inline" size={20} /></td></tr>
+                        <div className="overflow-x-auto font-sans font-sans"><table className="w-full font-sans"><thead><tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-50 bg-slate-50/30 font-sans font-sans"><th className="px-6 py-4 text-left font-sans">單號</th><th className="px-6 py-4 text-left font-sans">姓名 / 工號</th><th className="px-6 py-4 text-left font-sans">加班時段</th><th className="px-6 py-4 text-left font-sans">時數</th><th className="px-6 py-4 text-center font-sans">狀態</th><th className="px-6 py-4 text-right font-sans">動作</th></tr></thead>
+                        <tbody className="divide-y divide-slate-50 font-sans font-sans font-sans font-sans">{records.map(record => (
+                            <tr key={record.id} className="hover:bg-slate-50/80 transition-colors font-sans font-sans"><td className="px-6 py-4 font-mono text-[10px] font-bold text-slate-500 font-sans">{record.id}</td><td className="px-6 py-4 font-sans font-bold font-sans font-sans font-sans"><div className="text-slate-800 text-sm font-bold font-sans font-sans">{record.applicant}</div><div className="text-[10px] text-slate-400 font-mono tracking-tighter font-sans">ID #{record.employeeId}</div></td><td className="px-6 py-4 font-mono text-[10px] leading-relaxed font-sans font-sans font-sans font-sans font-sans"><div className="text-slate-700 font-sans font-sans font-sans">始：{record.startDateTime}</div><div className="text-slate-400 font-sans font-sans font-sans">迄：{record.endDateTime}</div></td><td className="px-6 py-4 font-sans font-black text-blue-600 font-sans font-sans font-sans">{record.totalHours}H</td><td className="px-6 py-4 text-center font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold font-sans font-sans font-sans ${record.status === '已核准' ? 'bg-green-50 text-green-600' : record.status === '待簽核' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>{record.status}</span></td><td className="px-6 py-4 text-right font-sans font-sans font-sans font-sans font-sans font-sans">
+                                <div className="flex items-center justify-end gap-2 font-sans font-sans">
+                                    {record.status === '待簽核' && (
+                                        <button 
+                                            onClick={() => openWithdrawConfirm(record.id)}
+                                            className="px-3 py-1.5 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-all font-sans font-sans"
+                                        >
+                                            抽單
+                                        </button>
+                                    )}
+                                    <Icon name="chevron-right" className="text-slate-300 font-sans font-sans" size={20} />
+                                </div>
+                            </td></tr>
                         ))}</tbody></table></div>
                     </div>
                 );
 
                 if (activeTab === 'settings') return (
-                    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500 text-left font-sans font-sans">
-                        <div className="lg:col-span-1 text-center font-sans">
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4 border border-blue-200 font-black uppercase shadow-inner">Admin</div>
-                                <h3 className="font-bold text-lg text-slate-800">王大錘 經理</h3>
-                                <p className="text-slate-400 text-[10px] mb-6 font-mono font-bold tracking-widest uppercase">ID: 1024</p>
-                                <button onClick={() => setIsSupervisor(!isSupervisor)} className={`w-full py-3 rounded-xl font-bold transition-all border-2 text-sm ${isSupervisor ? 'bg-slate-900 border-slate-900 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500 text-left font-sans font-sans font-sans">
+                        <div className="lg:col-span-1 text-center font-sans font-sans font-sans">
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 font-sans font-sans shadow-sm font-sans font-sans">
+                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4 border border-blue-200 font-black uppercase shadow-inner font-sans font-sans font-sans font-sans font-sans font-sans font-sans">Admin</div>
+                                <h3 className="font-bold text-lg text-slate-800 font-sans font-sans font-sans">王大錘 經理</h3>
+                                <p className="text-slate-400 text-[10px] mb-6 font-mono font-bold uppercase tracking-widest font-sans font-sans font-sans">ID: 1024</p>
+                                <button onClick={() => setIsSupervisor(!isSupervisor)} className={`w-full py-3 rounded-xl font-bold transition-all border-2 text-sm font-sans font-sans font-sans ${isSupervisor ? 'bg-slate-900 border-slate-900 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 font-sans font-sans'}`}>
                                     {isSupervisor ? '切換：管理員視角' : '切換：員工視角'}
                                 </button>
                             </div>
                         </div>
-                        <div className="lg:col-span-2 space-y-4 font-sans">
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 font-sans">
-                                <h3 className="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2"><Icon name="settings" size={16} /> 系統參數設定</h3>
-                                <div className="space-y-4 font-sans">
-                                    <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                        <div className="text-xs font-bold text-slate-700">單據流水號規則 (YYYYMMDD-序號)</div>
-                                        <span className="text-[10px] font-bold text-blue-600 bg-white border border-blue-100 px-3 py-1 rounded-lg font-mono tracking-tighter">{currentSerialNumber}</span>
+                        <div className="lg:col-span-2 space-y-4 font-sans font-sans font-sans">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 font-sans font-sans font-sans font-sans">
+                                <h3 className="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2 font-sans font-sans font-sans font-sans font-sans font-sans"><Icon name="settings" size={16} font-sans font-sans /> 系統參數設定</h3>
+                                <div className="space-y-4 font-sans font-sans font-sans font-sans font-sans font-sans">
+                                    <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 font-sans font-sans font-sans font-sans font-sans font-sans">
+                                        <div className="text-xs font-bold text-slate-700 font-sans font-sans font-sans font-sans font-sans font-sans">自動生成單據流水號 (YYYYMMDD-序號)</div>
+                                        <span className="text-[10px] font-bold text-blue-600 bg-white border border-blue-100 px-3 py-1 rounded-lg font-mono tracking-tighter font-sans font-sans font-sans font-sans font-sans font-sans">{currentSerialNumber}</span>
                                     </div>
-                                    <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                        <div className="text-xs font-bold text-slate-700">自動帶入登入者資訊</div>
-                                        <span className="text-[10px] font-bold text-green-600 bg-white border border-green-100 px-3 py-1 rounded-lg">啟用中</span>
+                                    <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 font-sans font-sans font-sans font-sans font-sans font-sans">
+                                        <div className="text-xs font-bold text-slate-700 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">自動帶入登入者資訊</div>
+                                        <span className="text-[10px] font-bold text-green-600 bg-white border border-green-100 px-3 py-1 rounded-lg font-sans font-sans font-sans font-sans font-sans font-sans">啟用中</span>
                                     </div>
                                 </div>
                             </div>
@@ -316,39 +344,68 @@
             };
 
             return (
-                <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans text-slate-900">
-                    <aside className={`bg-slate-900 text-white flex flex-col transition-all duration-300 z-50 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
-                        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 font-sans">
-                            <div className="flex items-center gap-3 overflow-hidden font-sans">
-                                <div className="bg-blue-600 p-2 rounded-xl shrink-0 shadow-lg border border-blue-500/20"><Icon name="file-text" className="text-white" size={20} /></div>
-                                {isSidebarOpen && <div className="whitespace-nowrap font-black font-sans tracking-tight animate-in fade-in slide-in-from-left-2">內部管理系統</div>}
+                <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans text-slate-900 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">
+                    {/* 抽單確認視窗 Modal */}
+                    {showConfirmModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in zoom-in-95 duration-200">
+                                <div className="bg-red-50 w-16 h-16 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
+                                    <Icon name="alert-triangle" size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800 text-center mb-2">確認要抽單嗎？</h3>
+                                <p className="text-slate-500 text-center text-sm leading-relaxed mb-8">
+                                    此筆申請單（單號：{targetWithdrawId}）將被永久移除，撤回後需重新填寫。
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={executeWithdraw}
+                                        className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-[0.98]"
+                                    >
+                                        確認撤回申請
+                                    </button>
+                                    <button 
+                                        onClick={() => { setShowConfirmModal(false); setTargetWithdrawId(null); }}
+                                        className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all font-sans"
+                                    >
+                                        取消
+                                    </button>
+                                </div>
                             </div>
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors"><Icon name="menu" size={18} /></button>
                         </div>
-                        <div className="flex-1 px-3 py-6 space-y-6">
+                    )}
+
+                    <aside className={`bg-slate-900 text-white flex flex-col transition-all duration-300 z-50 ${isSidebarOpen ? 'w-64' : 'w-20'} font-sans font-sans font-sans font-sans`}>
+                        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 font-sans font-sans font-sans">
+                            <div className="flex items-center gap-3 overflow-hidden font-sans font-sans font-sans">
+                                <div className="bg-blue-600 p-2 rounded-xl shrink-0 shadow-lg border border-blue-500/20 font-sans font-sans font-sans"><Icon name="file-text" className="text-white font-sans font-sans font-sans" size={20} /></div>
+                                {isSidebarOpen && <div className="whitespace-nowrap font-black font-sans tracking-tight animate-in fade-in slide-in-from-left-2 font-sans font-sans font-sans font-sans font-sans">內部管理系統</div>}
+                            </div>
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors font-sans font-sans font-sans font-sans"><Icon name="menu" size={18} font-sans font-sans /></button>
+                        </div>
+                        <div className="flex-1 px-3 py-6 space-y-6 font-sans font-sans font-sans font-sans font-sans">
                            {isSidebarOpen && (
-                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 font-bold text-[11px] animate-in fade-in duration-300 font-sans">
-                               <div className="flex justify-between text-slate-500 mb-3 uppercase tracking-widest font-black">System Status</div>
-                               <div className="flex justify-between text-blue-400 mb-2"><span>登入者</span><span className="font-bold">王大錘</span></div>
-                               <div className="flex justify-between text-green-400"><span>權限級別</span><span className="font-bold">{isSupervisor ? "管理員" : "一般"}</span></div>
+                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 font-bold text-[11px] animate-in fade-in duration-300 font-sans font-sans font-sans font-sans font-sans">
+                               <div className="flex justify-between text-slate-500 mb-3 uppercase tracking-widest font-black font-sans font-sans font-sans font-sans font-sans">System Status</div>
+                               <div className="flex justify-between text-blue-400 mb-2 font-sans font-sans font-sans font-sans font-sans font-sans"><span>登入者</span><span className="font-bold font-sans font-sans font-sans font-sans font-sans font-sans font-sans">王大錘</span></div>
+                               <div className="flex justify-between text-green-400 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><span>權限級別</span><span className="font-bold font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">{isSupervisor ? "管理員" : "一般"}</span></div>
                              </div>
                            )}
                         </div>
-                        <div className="p-3 border-t border-slate-800"><div className={`flex items-center p-3 bg-slate-800/50 rounded-2xl ${!isSidebarOpen && 'justify-center'} shadow-inner`}><Icon name="user" className="text-blue-400 shrink-0" />{isSidebarOpen && <div className="ml-3 text-[11px] font-bold text-slate-500 font-mono tracking-widest font-sans">ID #1024</div>}</div></div>
+                        <div className="p-3 border-t border-slate-800 font-sans font-sans font-sans font-sans font-sans"><div className={`flex items-center p-3 bg-slate-800/50 rounded-2xl ${!isSidebarOpen && 'justify-center'} shadow-inner font-sans font-sans font-sans`}><Icon name="user" className="text-blue-400 shrink-0 font-sans font-sans font-sans font-sans" />{isSidebarOpen && <div className="ml-3 text-[11px] font-bold text-slate-500 font-mono tracking-widest font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">ID #1024</div>}</div></div>
                     </aside>
-                    <main className="flex-1 flex flex-col overflow-hidden">
-                        <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md z-40 px-8 flex items-center justify-between font-sans">
-                            <div className="flex items-center gap-1 font-sans h-full">
-                                <TabItem active={activeTab === 'apply'} label="加班申請" onClick={() => setActiveTab('apply')} />
+                    <main className="flex-1 flex flex-col overflow-hidden font-sans font-sans font-sans font-sans">
+                        <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md z-40 px-8 flex items-center justify-between font-sans font-sans font-sans font-sans">
+                            <div className="flex items-center gap-1 font-sans h-full font-sans font-sans">
+                                <TabItem active={activeTab === 'apply'} label="加班申請" onClick={() => setActiveTab('apply')} font-sans font-sans />
                                 {isSupervisor && (
-                                    <TabItem active={activeTab === 'approve'} label="主管簽核" onClick={() => setActiveTab('approve')} badge={records.filter(r => r.status === '待簽核').length} />
+                                    <TabItem active={activeTab === 'approve'} label="主管簽核" onClick={() => setActiveTab('approve')} badge={records.filter(r => r.status === '待簽核').length} font-sans font-sans font-sans font-sans />
                                 )}
-                                <TabItem active={activeTab === 'query'} label="紀錄查詢" onClick={() => setActiveTab('query')} />
-                                <TabItem active={activeTab === 'settings'} label="系統設定" onClick={() => setActiveTab('settings')} />
+                                <TabItem active={activeTab === 'query'} label="紀錄查詢" onClick={() => setActiveTab('query')} font-sans font-sans font-sans font-sans />
+                                <TabItem active={activeTab === 'settings'} label="系統設定" onClick={() => setActiveTab('settings')} font-sans font-sans font-sans font-sans />
                             </div>
-                            <div className="flex items-center gap-4 font-sans font-black text-[11px] text-slate-400 tracking-widest">{new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}</div>
+                            <div className="flex items-center gap-4 font-sans font-black text-[11px] text-slate-400 tracking-widest font-sans font-sans font-sans font-sans font-sans font-sans">{new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}</div>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-8 font-sans">
+                        <div className="flex-1 overflow-y-auto p-8 font-sans font-sans font-sans font-sans font-sans">
                             {renderContent()}
                         </div>
                     </main>
@@ -357,10 +414,10 @@
         };
 
         const TabItem = ({ active, label, onClick, badge }) => (
-            <button onClick={onClick} className={`h-full px-6 flex items-center gap-2 transition-all relative font-black text-[13px] font-sans ${active ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+            <button onClick={onClick} className={`h-full px-6 flex items-center gap-2 transition-all relative font-black text-[13px] font-sans font-sans font-sans ${active ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600 font-sans font-sans font-sans'}`}>
                 {label}
-                {badge > 0 && <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full min-w-[16px] text-center font-black animate-pulse">{badge}</span>}
-                {active && <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/50 animate-in slide-in-from-bottom-1" />}
+                {badge > 0 && <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full min-w-[16px] text-center font-black animate-pulse font-sans font-sans font-sans font-sans font-sans font-sans">{badge}</span>}
+                {active && <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/50 animate-in slide-in-from-bottom-1 font-sans font-sans font-sans font-sans" />}
             </button>
         );
 

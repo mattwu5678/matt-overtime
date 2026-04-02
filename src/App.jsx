@@ -26,7 +26,8 @@ import {
   ExternalLink,
   PartyPopper,
   Loader2,
-  Navigation
+  Navigation,
+  ClipboardList
 } from 'lucide-react';
 
 // 預設員工資料庫
@@ -75,7 +76,8 @@ const App = () => {
   const [records, setRecords] = useState(INITIAL_DATA);
   const [isSupervisor, setIsSupervisor] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [lastSubmittedRecord, setLastSubmittedRecord] = useState(null);
+  // 改為陣列，用於存儲本次操作中所有提交成功的紀錄
+  const [recentSubmissions, setRecentSubmissions] = useState([]);
   
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
@@ -109,7 +111,6 @@ const App = () => {
       employeeId: id,
       employeeName: found ? found.name : prev.employeeName
     }));
-    if (lastSubmittedRecord) setLastSubmittedRecord(null);
   };
 
   const handleEmployeeNameChange = (name) => {
@@ -119,7 +120,6 @@ const App = () => {
       employeeName: name,
       employeeId: found ? found.id : prev.employeeId
     }));
-    if (lastSubmittedRecord) setLastSubmittedRecord(null);
   };
 
   useEffect(() => {
@@ -160,7 +160,8 @@ const App = () => {
     };
     
     setRecords([newRecord, ...records]);
-    setLastSubmittedRecord(newRecord);
+    // 將新單據加入近期提交列表的最前面
+    setRecentSubmissions([newRecord, ...recentSubmissions]);
     
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, employeeName: CURRENT_LOGGED_USER.name, 
@@ -172,17 +173,18 @@ const App = () => {
     setTimeout(() => {
       const element = document.getElementById('submission-tracking');
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
   };
 
   const handleApprove = (id, newStatus) => {
     setRecords(records.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    // 同步更新近期提交列表中的狀態
+    setRecentSubmissions(recentSubmissions.map(r => r.id === id ? { ...r, status: newStatus } : r));
   };
 
   const handleDateClick = (e) => {
-    if (lastSubmittedRecord) setLastSubmittedRecord(null);
     try {
       if (e.currentTarget && typeof e.currentTarget.showPicker === 'function') {
         e.currentTarget.showPicker();
@@ -216,10 +218,7 @@ const App = () => {
                       {['事前', '事後'].map(t => (
                         <button
                           key={t} type="button" 
-                          onClick={() => {
-                            setFormData({...formData, type: t});
-                            if (lastSubmittedRecord) setLastSubmittedRecord(null);
-                          }}
+                          onClick={() => setFormData({...formData, type: t})}
                           className={`px-8 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-base font-bold ${
                             formData.type === t 
                             ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' 
@@ -267,10 +266,7 @@ const App = () => {
                       {['補休', '計薪'].map(r => (
                         <button
                           key={r} type="button" 
-                          onClick={() => {
-                            setFormData({...formData, reimbursementType: r});
-                            if (lastSubmittedRecord) setLastSubmittedRecord(null);
-                          }}
+                          onClick={() => setFormData({...formData, reimbursementType: r})}
                           className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-base font-bold ${formData.reimbursementType === r ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400'}`}
                         >
                           {r}
@@ -283,10 +279,7 @@ const App = () => {
                     <select
                       required className="w-full p-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 text-base"
                       value={formData.category} 
-                      onChange={(e) => {
-                        setFormData({...formData, category: e.target.value});
-                        if (lastSubmittedRecord) setLastSubmittedRecord(null);
-                      }}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
                     >
                       <option value="一般上班日">一般上班日</option>
                       <option value="國定假日">國定假日</option>
@@ -363,10 +356,7 @@ const App = () => {
                     rows="4" required placeholder="請詳細描述加班原因..."
                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all text-base"
                     value={formData.reason} 
-                    onChange={(e) => {
-                      setFormData({...formData, reason: e.target.value});
-                      if (lastSubmittedRecord) setLastSubmittedRecord(null);
-                    }}
+                    onChange={(e) => setFormData({...formData, reason: e.target.value})}
                   ></textarea>
                 </div>
 
@@ -383,7 +373,7 @@ const App = () => {
                 </div>
               </form>
 
-              {/* 加班申請注意事項 (調整位置至表單下方，資訊欄上方) */}
+              {/* 加班申請注意事項 */}
               <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans">
                 <div className="flex items-center gap-2 text-amber-800 font-bold mb-6 border-b border-amber-200 pb-3 tracking-wider text-base">
                   <AlertCircle size={22} />
@@ -409,64 +399,68 @@ const App = () => {
                 </ul>
               </div>
 
-              {/* 提交成功後的單據追蹤欄 (調整至最下方) */}
-              {lastSubmittedRecord && (
+              {/* 提交成功後的單據追蹤欄 (支援多筆帶出) */}
+              {recentSubmissions.length > 0 && (
                 <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700 font-sans text-left">
-                  <div className="mb-4 flex items-center gap-2 px-2">
-                    <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
-                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">剛提交的單據資訊</span>
-                    <div className="h-1 flex-1 bg-emerald-100 rounded-full"></div>
+                  <div className="mb-6 flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList size={20} className="text-emerald-600" />
+                      <span className="text-sm font-black text-emerald-600 uppercase tracking-widest">剛提交的單據資訊清單</span>
+                    </div>
+                    <button 
+                      onClick={() => setRecentSubmissions([])}
+                      className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      清空列表
+                    </button>
                   </div>
                   
-                  <div className="bg-white border-2 border-emerald-500 rounded-3xl p-8 relative overflow-hidden shadow-2xl shadow-emerald-100">
-                    <div className="absolute -right-12 -top-12 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between gap-4 mb-8">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-200">
-                            <CheckCircle size={24} strokeWidth={2.5} />
+                  <div className="space-y-4">
+                    {recentSubmissions.map((record, index) => (
+                      <div key={record.id} className={`bg-white border-2 ${index === 0 ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-slate-200'} rounded-3xl p-6 relative overflow-hidden shadow-xl transition-all`}>
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className={`${index === 0 ? 'bg-emerald-500' : 'bg-slate-400'} text-white p-2 rounded-xl shadow-lg`}>
+                              <CheckCircle size={20} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <span className="text-lg font-black text-slate-800 tracking-tight">單據 {record.id} 提交成功</span>
+                              <p className="text-[10px] font-bold text-slate-400 mt-0.5 tracking-wide uppercase">提交時間：{record.submittedAt}</p>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-xl font-black text-slate-800 tracking-tight">申請單提交成功</span>
-                            <p className="text-xs font-bold text-slate-400 mt-0.5 tracking-wide uppercase">系統已同步更新</p>
+                          
+                          {/* 四個核心欄位 */}
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-1 lg:max-w-3xl">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">單號</p>
+                              <p className="text-xs font-mono font-black text-slate-700">{record.id}</p>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">大名</p>
+                              <p className="text-xs font-black text-slate-700">{record.applicant}</p>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">異動時間</p>
+                              <p className="text-[10px] font-bold text-slate-700 leading-tight">{record.submittedAt.split(' ')[1]}</p>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase mb-1">狀態</p>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <div className="w-1 h-1 bg-orange-400 rounded-full animate-pulse"></div>
+                                <p className="text-xs font-black text-orange-600 uppercase">{record.status}</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <button 
-                          onClick={() => setLastSubmittedRecord(null)}
-                          className="bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-xl transition-all"
-                        >
-                          <X size={20} />
-                        </button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white/60 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-2 tracking-widest">單號</p>
-                          <p className="text-sm font-mono font-black text-emerald-900 bg-emerald-100/50 py-1 rounded-lg border border-emerald-200/50">
-                            {lastSubmittedRecord.id}
-                          </p>
-                        </div>
-                        <div className="bg-white/60 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-2 tracking-widest">大名</p>
-                          <p className="text-sm font-black text-emerald-900">{lastSubmittedRecord.applicant}</p>
-                        </div>
-                        <div className="bg-white/60 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-2 tracking-widest">異動時間</p>
-                          <p className="text-[11px] font-mono font-bold text-emerald-900 leading-tight">
-                            {lastSubmittedRecord.submittedAt.split(' ')[0]}<br/>
-                            <span className="text-[10px] opacity-60">{lastSubmittedRecord.submittedAt.split(' ')[1]}</span>
-                          </p>
-                        </div>
-                        <div className="bg-white/60 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                          <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-2 tracking-widest">狀態</p>
-                          <div className="flex items-center justify-center gap-1.5 bg-orange-100/50 py-1 rounded-lg border border-orange-200/50">
-                            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
-                            <p className="text-sm font-black text-orange-600 uppercase">{lastSubmittedRecord.status}</p>
-                          </div>
+
+                          <button 
+                            onClick={() => setRecentSubmissions(recentSubmissions.filter(r => r.id !== record.id))}
+                            className="text-slate-300 hover:text-red-500 p-1 hidden md:block"
+                          >
+                            <X size={18} />
+                          </button>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}

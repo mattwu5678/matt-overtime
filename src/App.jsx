@@ -395,7 +395,6 @@ const App = () => {
                   </div>
                   
                   <div className="bg-white border-2 border-emerald-500 rounded-3xl p-8 relative overflow-hidden shadow-2xl shadow-emerald-100">
-                    {/* 背景裝飾 */}
                     <div className="absolute -right-12 -top-12 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
                     
                     <div className="relative z-10">
@@ -453,23 +452,15 @@ const App = () => {
                         </div>
                       </div>
 
-                      {/* 追蹤狀態區 */}
-                      <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 p-4 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-200">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-white/20 p-2.5 rounded-full animate-pulse">
-                            <Loader2 className="text-white animate-spin" size={24} />
-                          </div>
-                          <div className="text-white text-left">
-                            <p className="text-[10px] font-black opacity-60 uppercase tracking-widest">目前單據進度</p>
-                            <p className="text-lg font-black tracking-wider">等待主管核准中...</p>
-                          </div>
+                      {/* 追蹤狀態區 (移除跳轉按鈕) */}
+                      <div className="mt-8 flex items-center gap-6 p-5 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-200">
+                        <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                          <Loader2 className="text-white animate-spin" size={28} />
                         </div>
-                        <button 
-                          onClick={() => setActiveTab('query')}
-                          className="w-full md:w-auto bg-white hover:bg-slate-100 text-emerald-700 px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md group text-sm"
-                        >
-                          追蹤所有單據 <Navigation size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                        </button>
+                        <div className="text-white text-left">
+                          <p className="text-xs font-black opacity-60 uppercase tracking-widest">目前單據進度</p>
+                          <p className="text-xl font-black tracking-wider">等待主管核准中...</p>
+                        </div>
                       </div>
                     </div>
                   </div>

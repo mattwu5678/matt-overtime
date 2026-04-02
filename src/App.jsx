@@ -77,7 +77,6 @@ const App = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [lastSubmittedRecord, setLastSubmittedRecord] = useState(null);
   
-  // 生成流水號邏輯 (用於顯示下一個準備申請的單號)
   const currentSerialNumber = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -144,7 +143,6 @@ const App = () => {
     e.preventDefault();
     const foundEmp = EMPLOYEE_DB.find(emp => emp.id === formData.employeeId) || { department: '其他部門' };
     
-    // 這裡捕獲當前的 currentSerialNumber 並保存到紀錄中
     const newRecord = {
       id: currentSerialNumber,
       employeeId: formData.employeeId,
@@ -164,7 +162,6 @@ const App = () => {
     setRecords([newRecord, ...records]);
     setLastSubmittedRecord(newRecord);
     
-    // 重置表單為當前登入者
     setFormData({ 
       employeeId: CURRENT_LOGGED_USER.id, employeeName: CURRENT_LOGGED_USER.name, 
       type: '事前', category: '一般上班日', reimbursementType: '補休', 
@@ -172,7 +169,6 @@ const App = () => {
       endDate: '', endHour: '20', endMinute: '00', reason: '' 
     });
     
-    // 平滑捲動至下方資訊欄
     setTimeout(() => {
       const element = document.getElementById('submission-tracking');
       if (element) {
@@ -387,7 +383,33 @@ const App = () => {
                 </div>
               </form>
 
-              {/* 提交成功後的單據追蹤欄 */}
+              {/* 加班申請注意事項 (調整位置至表單下方，資訊欄上方) */}
+              <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans">
+                <div className="flex items-center gap-2 text-amber-800 font-bold mb-6 border-b border-amber-200 pb-3 tracking-wider text-base">
+                  <AlertCircle size={22} />
+                  <span>加班申請注意事項</span>
+                </div>
+                <ul className="space-y-4 text-base text-amber-900/80 leading-relaxed">
+                  <li className="flex gap-3">
+                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">A</span>
+                    <span>加班申請須事前由直屬主管核准，始得進行加班；並於事後呈主管審核確認。</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">B</span>
+                    <span>此單由各部門編序號並於加班後<span className="text-amber-900 font-bold underline mx-1">七個工作日內</span>交至財務行政部辦理，逾期不受理。</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">C</span>
+                    <span>此加班工時將依比例換算補修時數或薪資。</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">D</span>
+                    <span>每月加班時數不得超過 <span className="text-red-600 font-bold">46 小時</span>。</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* 提交成功後的單據追蹤欄 (調整至最下方) */}
               {lastSubmittedRecord && (
                 <div id="submission-tracking" className="mt-12 animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-700 font-sans text-left">
                   <div className="mb-4 flex items-center gap-2 px-2">
@@ -418,7 +440,6 @@ const App = () => {
                         </button>
                       </div>
                       
-                      {/* 單據核心資訊網格 - 您要求帶出的四個欄位 */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-white/60 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
                           <p className="text-[10px] font-black text-emerald-600/50 uppercase mb-2 tracking-widest">單號</p>
@@ -449,23 +470,6 @@ const App = () => {
                   </div>
                 </div>
               )}
-
-              <div className="mt-12 p-8 bg-amber-50 border border-amber-200 rounded-2xl text-left font-sans">
-                <div className="flex items-center gap-2 text-amber-800 font-bold mb-6 border-b border-amber-200 pb-3 tracking-wider text-base">
-                  <AlertCircle size={22} />
-                  <span>加班申請注意事項</span>
-                </div>
-                <ul className="space-y-4 text-base text-amber-900/80 leading-relaxed">
-                  <li className="flex gap-3">
-                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">1</span>
-                    <span>加班申請須事前由直屬主管核准，始得進行加班。</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="shrink-0 bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black">2</span>
-                    <span>請於加班後<span className="text-amber-900 font-bold underline mx-1">七個工作日內</span>提交申請，逾期不受理。</span>
-                  </li>
-                </ul>
-              </div>
             </div>
           </div>
         );
